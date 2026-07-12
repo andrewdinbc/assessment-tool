@@ -2,10 +2,11 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { C } from '../../lib/theme'
+import Tooltip from '../../components/Tooltip'
 
 const SUBJECTS = [
-  { value: 'math', label: 'Math', icon: '🔢' },
-  { value: 'language_arts', label: 'Language Arts', icon: '✍️' },
+  { value: 'math', label: 'Math', icon: '🔢', tip: 'Files this under Math Mastery data - shows up in that class overview, not the Writing sidebar.' },
+  { value: 'language_arts', label: 'Language Arts', icon: '✍️', tip: 'Files this under Writing - shows up for review and analytics as a writing assignment.' },
 ]
 
 const RIGOR = ['Tolerant', 'Balanced', 'Strict', 'Auto']
@@ -121,21 +122,22 @@ export default function WorksheetsPage() {
         <SectionLabel>Subject</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}>
           {SUBJECTS.map((s) => (
-            <button
-              key={s.value}
-              type="button"
-              onClick={() => setSubject(s.value)}
-              style={{
-                padding: '18px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
-                background: subject === s.value ? '#fdf6ea' : '#fff',
-                border: subject === s.value ? `2px solid ${C.gold}` : `1px solid ${C.border}`,
-                color: subject === s.value ? C.gold : C.navy,
-                fontFamily: 'inherit', fontWeight: subject === s.value ? 700 : 400,
-              }}
-            >
-              <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
-              {s.label}
-            </button>
+            <Tooltip key={s.value} text={s.tip}>
+              <button
+                type="button"
+                onClick={() => setSubject(s.value)}
+                style={{
+                  width: '100%', padding: '18px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                  background: subject === s.value ? '#fdf6ea' : '#fff',
+                  border: subject === s.value ? `2px solid ${C.gold}` : `1px solid ${C.border}`,
+                  color: subject === s.value ? C.gold : C.navy,
+                  fontFamily: 'inherit', fontWeight: subject === s.value ? 700 : 400,
+                }}
+              >
+                <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
+                {s.label}
+              </button>
+            </Tooltip>
           ))}
         </div>
 
@@ -158,15 +160,21 @@ export default function WorksheetsPage() {
             Claude creates a rubric using research-based instructional practices, write your own, or upload one you already have.
           </p>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <RubricChoiceButton active={rubricMode === 'auto'} onClick={() => setRubricMode('auto')} icon="✨">
-              Claude Rubric
-            </RubricChoiceButton>
-            <RubricChoiceButton active={rubricMode === 'custom'} onClick={() => setRubricMode('custom')} icon="📄">
-              Write my own
-            </RubricChoiceButton>
-            <RubricChoiceButton active={rubricMode === 'upload'} onClick={() => setRubricMode('upload')} icon="⬆️">
-              Upload a rubric
-            </RubricChoiceButton>
+            <Tooltip text="Claude derives criteria automatically based on the assignment name and grading parameters below - nothing to type.">
+              <RubricChoiceButton active={rubricMode === 'auto'} onClick={() => setRubricMode('auto')} icon="✨">
+                Claude Rubric
+              </RubricChoiceButton>
+            </Tooltip>
+            <Tooltip text="Type or paste your own rubric text - this is what actually gets sent to Claude when marking submissions.">
+              <RubricChoiceButton active={rubricMode === 'custom'} onClick={() => setRubricMode('custom')} icon="📄">
+                Write my own
+              </RubricChoiceButton>
+            </Tooltip>
+            <Tooltip text="Upload a PDF or photo of a rubric you already have - Claude reads it and fills in the text box below for you to check.">
+              <RubricChoiceButton active={rubricMode === 'upload'} onClick={() => setRubricMode('upload')} icon="⬆️">
+                Upload a rubric
+              </RubricChoiceButton>
+            </Tooltip>
           </div>
 
           {rubricMode === 'upload' && (
@@ -185,14 +193,16 @@ export default function WorksheetsPage() {
                 <div style={{ fontSize: 13, color: C.navy, marginBottom: 10 }}>
                   {extracting ? 'Reading rubric…' : 'Drag and drop a rubric here (PDF or photo/scan)'}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => rubricFileInputRef.current?.click()}
-                  disabled={extracting}
-                  style={{ padding: '8px 18px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
-                >
-                  {extracting ? 'Reading…' : 'Choose File'}
-                </button>
+                <Tooltip text="Opens your file browser to pick a rubric file (PDF or photo).">
+                  <button
+                    type="button"
+                    onClick={() => rubricFileInputRef.current?.click()}
+                    disabled={extracting}
+                    style={{ padding: '8px 18px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
+                  >
+                    {extracting ? 'Reading…' : 'Choose File'}
+                  </button>
+                </Tooltip>
                 <input
                   ref={rubricFileInputRef}
                   type="file"
@@ -233,8 +243,12 @@ export default function WorksheetsPage() {
         <SectionLabel>Worksheet Content</SectionLabel>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <ModeButton active={mode === 'upload'} onClick={() => setMode('upload')}>Upload existing worksheet</ModeButton>
-            <ModeButton active={mode === 'blank'} onClick={() => setMode('blank')}>Blank lined paper</ModeButton>
+            <Tooltip text="Use a worksheet you already made - it stays exactly as-is, just with each student's QR code added to the corner.">
+              <ModeButton active={mode === 'upload'} onClick={() => setMode('upload')}>Upload existing worksheet</ModeButton>
+            </Tooltip>
+            <Tooltip text="No worksheet to upload? Each student gets a page with their name line, ruled lines to write on, and their QR code - for handwritten or open-ended responses.">
+              <ModeButton active={mode === 'blank'} onClick={() => setMode('blank')}>Blank lined paper</ModeButton>
+            </Tooltip>
           </div>
 
           {mode === 'upload' ? (
@@ -245,13 +259,15 @@ export default function WorksheetsPage() {
               <span style={{ fontSize: 13, color: file ? C.navy : C.muted }}>
                 {file ? file.name : 'No file chosen'}
               </span>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
-              >
-                Choose File
-              </button>
+              <Tooltip text="Opens your file browser to pick the worksheet file (PDF or image) students will each get their own copy of.">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
+                >
+                  Choose File
+                </button>
+              </Tooltip>
               <input ref={fileInputRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files[0])} style={{ display: 'none' }} />
             </div>
           ) : (
@@ -261,12 +277,14 @@ export default function WorksheetsPage() {
           )}
         </div>
 
-        <button type="submit" disabled={generating} style={{
-          width: '100%', padding: 14, background: C.gold, color: '#fff', border: 'none', borderRadius: 8,
-          fontWeight: 700, cursor: 'pointer', fontSize: 15,
-        }}>
-          {generating ? 'Generating…' : 'Generate Class Set'}
-        </button>
+        <Tooltip text="Creates one merged PDF - a page per registered student with their QR code - and sets up this assignment for AI marking." width={260}>
+          <button type="submit" disabled={generating} style={{
+            width: '100%', padding: 14, background: C.gold, color: '#fff', border: 'none', borderRadius: 8,
+            fontWeight: 700, cursor: 'pointer', fontSize: 15,
+          }}>
+            {generating ? 'Generating…' : 'Generate Class Set'}
+          </button>
+        </Tooltip>
       </form>
 
       {error && <div style={{ marginTop: 16, padding: 12, background: '#fdecea', border: '1px solid #f5b7b1', borderRadius: 8, color: '#c0392b' }}>{error}</div>}
@@ -353,5 +371,6 @@ const inputStyle = {
   width: '100%', padding: 10, border: `1px solid ${C.border}`, borderRadius: 6,
   fontFamily: 'inherit', boxSizing: 'border-box', fontSize: 14,
 }
+
 
 
