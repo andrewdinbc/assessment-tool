@@ -1,4 +1,5 @@
 import Sidebar from '../components/Sidebar'
+import TopHeader from '../components/TopHeader'
 import DevModePanel from '../developer-mode/DevModePanel'
 
 export const metadata = {
@@ -9,10 +10,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, display: 'flex' }}>
-        <Sidebar />
-        <div style={{ flex: 1, minHeight: '100vh', background: '#f5f0e8' }}>
-          {children}
+      <body style={{ margin: 0 }}>
+        <TopHeader />
+        <div style={{ display: 'flex' }}>
+          <Sidebar />
+          <div style={{ flex: 1, minHeight: 'calc(100vh - 49px)', background: '#f5f0e8' }}>
+            {children}
+          </div>
         </div>
         <DevModePanel
           productName="Assessment Tool"
