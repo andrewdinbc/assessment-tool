@@ -11,6 +11,7 @@ export async function GET(request) {
   try {
     const res = await fetch(`${MASTERY_STUDIO_URL}/api/analytics?teacherEmail=${encodeURIComponent(teacherEmail)}`, {
       headers: { 'x-micro-unit-sync-secret': secret },
+      cache: 'no-store',
     })
     const data = await res.json()
     if (!res.ok) return Response.json({ error: data.error || 'Mastery Studio request failed' }, { status: res.status })

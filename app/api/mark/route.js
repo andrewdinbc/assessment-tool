@@ -7,6 +7,7 @@ export async function POST(request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      cache: 'no-store',
     })
     const data = await res.json()
     if (!res.ok) return Response.json({ error: data.error || 'Marking failed' }, { status: res.status })
