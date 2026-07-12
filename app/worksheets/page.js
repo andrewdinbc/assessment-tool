@@ -1,8 +1,9 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { C } from '../../lib/theme'
 import Tooltip from '../../components/Tooltip'
+import FeatureLock from '../../components/FeatureLock'
 
 const SUBJECTS = [
   { value: 'math', label: 'Math', icon: '🔢', tip: 'Files this under Math Mastery data - shows up in that class overview, not the Writing sidebar.' },
@@ -25,6 +26,11 @@ export default function WorksheetsPage() {
   const [extractedRubricName, setExtractedRubricName] = useState('')
   const [dragActive, setDragActive] = useState(false)
   const rubricFileInputRef = useRef(null)
+  const [entitlements, setEntitlements] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/entitlements').then((r) => r.json()).then(setEntitlements).catch(() => {})
+  }, [])
   const [rigor, setRigor] = useState(0)
   const [readingLevel, setReadingLevel] = useState(0)
   const [length, setLength] = useState(1)
@@ -241,41 +247,43 @@ export default function WorksheetsPage() {
         </div>
 
         <SectionLabel>Worksheet Content</SectionLabel>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <Tooltip text="Use a worksheet you already made - it stays exactly as-is, just with each student's QR code added to the corner.">
-              <ModeButton active={mode === 'upload'} onClick={() => setMode('upload')}>Upload existing worksheet</ModeButton>
-            </Tooltip>
-            <Tooltip text="No worksheet to upload? Each student gets a page with their name line, ruled lines to write on, and their QR code - for handwritten or open-ended responses.">
-              <ModeButton active={mode === 'blank'} onClick={() => setMode('blank')}>Blank lined paper</ModeButton>
-            </Tooltip>
-          </div>
-
-          {mode === 'upload' ? (
-            <div style={{
-              border: `1px dashed ${C.border}`, borderRadius: 8, padding: 16,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span style={{ fontSize: 13, color: file ? C.navy : C.muted }}>
-                {file ? file.name : 'No file chosen'}
-              </span>
-              <Tooltip text="Opens your file browser to pick the worksheet file (PDF or image) students will each get their own copy of.">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
-                >
-                  Choose File
-                </button>
+        <FeatureLock entitlement={entitlements?.parentPortal}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <Tooltip text="Use a worksheet you already made - it stays exactly as-is, just with each student's QR code added to the corner.">
+                <ModeButton active={mode === 'upload'} onClick={() => setMode('upload')}>Upload existing worksheet</ModeButton>
               </Tooltip>
-              <input ref={fileInputRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files[0])} style={{ display: 'none' }} />
+              <Tooltip text="No worksheet to upload? Each student gets a page with their name line, ruled lines to write on, and their QR code - for handwritten or open-ended responses.">
+                <ModeButton active={mode === 'blank'} onClick={() => setMode('blank')}>QR code with lined paper</ModeButton>
+              </Tooltip>
             </div>
-          ) : (
-            <p style={{ color: C.muted, fontSize: 13, margin: 0, fontStyle: 'italic' }}>
-              Each student page will have a &quot;Name: ___&quot; header, ruled lines, and their QR code — nothing else uploaded.
-            </p>
-          )}
-        </div>
+
+            {mode === 'upload' ? (
+              <div style={{
+                border: `1px dashed ${C.border}`, borderRadius: 8, padding: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span style={{ fontSize: 13, color: file ? C.navy : C.muted }}>
+                  {file ? file.name : 'No file chosen'}
+                </span>
+                <Tooltip text="Opens your file browser to pick the worksheet file (PDF or image) students will each get their own copy of.">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
+                  >
+                    Choose File
+                  </button>
+                </Tooltip>
+                <input ref={fileInputRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files[0])} style={{ display: 'none' }} />
+              </div>
+            ) : (
+              <p style={{ color: C.muted, fontSize: 13, margin: 0, fontStyle: 'italic' }}>
+                Each student page will have a &quot;Name: ___&quot; header, ruled lines, and their QR code — nothing else uploaded.
+              </p>
+            )}
+          </div>
+        </FeatureLock>
 
         <Tooltip text="Creates one merged PDF - a page per registered student with their QR code - and sets up this assignment for AI marking." width={260}>
           <button type="submit" disabled={generating} style={{
@@ -371,6 +379,7 @@ const inputStyle = {
   width: '100%', padding: 10, border: `1px solid ${C.border}`, borderRadius: 6,
   fontFamily: 'inherit', boxSizing: 'border-box', fontSize: 14,
 }
+
 
 
 
