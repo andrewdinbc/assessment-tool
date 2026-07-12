@@ -62,6 +62,7 @@ export default function Sidebar() {
         <SidebarLink href="/rubrics" active={pathname.startsWith('/rubrics')}>📐 Rubric Library</SidebarLink>
         <SidebarLink href="/quizzes" active={pathname.startsWith('/quizzes')}>📋 Quiz Maker</SidebarLink>
         <SidebarLink href="/admin" active={pathname === '/admin'}>👪 Parent Contacts</SidebarLink>
+        <SidebarLink href="/archive" active={pathname === '/archive'}>📦 Archive Units</SidebarLink>
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
@@ -83,6 +84,7 @@ function SidebarLink({ href, active, children }) {
     </Link>
   )
 }
+
 
 
 
