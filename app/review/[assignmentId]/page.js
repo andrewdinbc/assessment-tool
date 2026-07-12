@@ -16,6 +16,11 @@ export default function ReviewPage() {
   const [marking, setMarking] = useState(false)
   const [error, setError] = useState('')
 
+  // Essay Checker (fast, separate from full rubric marking)
+  const [check, setCheck] = useState(null)
+  const [checking, setChecking] = useState(false)
+  const [showCheck, setShowCheck] = useState(false)
+
   async function load() {
     setLoading(true)
     try {
@@ -30,7 +35,7 @@ export default function ReviewPage() {
   }
 
   useEffect(() => { load() }, [assignmentId])
-  useEffect(() => { setDraft(submissions[idx]?.structured_feedback || null) }, [idx])
+  useEffect(() => { setDraft(submissions[idx]?.structured_feedback || null); setCheck(null); setShowCheck(false) }, [idx])
 
   const sub = submissions[idx]
 
@@ -49,6 +54,24 @@ export default function ReviewPage() {
       setDraft(data.structuredFeedback)
     } catch (e) { setError(e.message) }
     setMarking(false)
+  }
+
+  async function requestCheck() {
+    if (!sub) return
+    setChecking(true)
+    setError('')
+    setShowCheck(true)
+    try {
+      const res = await fetch('/api/essay-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId: sub.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setCheck(data)
+    } catch (e) { setError(e.message) }
+    setChecking(false)
   }
 
   function updateCriterion(i, field, value) {
@@ -93,20 +116,65 @@ export default function ReviewPage() {
           <Link href="/" style={{ color: '#fff', opacity: 0.7, fontSize: 12, textDecoration: 'none' }}>← Dashboard</Link>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{assignment?.title}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 20, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
-          <span style={{ fontSize: 13 }}>{idx + 1} of {submissions.length}</span>
-          <button onClick={() => setIdx((i) => Math.min(submissions.length - 1, i + 1))} disabled={idx === submissions.length - 1}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === submissions.length - 1 ? 'default' : 'pointer', fontSize: 20, opacity: idx === submissions.length - 1 ? 0.3 : 1 }}>›</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <Link href={`/triage/${assignmentId}`} style={{ color: '#fff', opacity: 0.85, fontSize: 12, textDecoration: 'none' }}>
+            ⚡ Rate all papers first →
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
+              style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 20, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
+            <span style={{ fontSize: 13 }}>{idx + 1} of {submissions.length}</span>
+            <button onClick={() => setIdx((i) => Math.min(submissions.length - 1, i + 1))} disabled={idx === submissions.length - 1}
+              style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === submissions.length - 1 ? 'default' : 'pointer', fontSize: 20, opacity: idx === submissions.length - 1 ? 0.3 : 1 }}>›</button>
+          </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', flex: 1 }}>
         {/* LEFT: submission text */}
         <div style={{ flex: 1.1, padding: 24, borderRight: `1px solid ${C.border}`, maxHeight: 'calc(100vh - 58px)', overflowY: 'auto', background: C.bg }}>
-          <div style={{ fontWeight: 700, color: C.navy, marginBottom: 6, fontSize: 15 }}>Student: {sub.qr_id}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ fontWeight: 700, color: C.navy, fontSize: 15 }}>Student: {sub.qr_id}</div>
+            {sub.text_content && (
+              <button onClick={requestCheck} disabled={checking} style={{
+                padding: '5px 12px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer',
+              }}>
+                {checking ? 'Checking…' : '🔍 Quick Check'}
+              </button>
+            )}
+          </div>
           <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Submitted {new Date(sub.submitted_at).toLocaleString()}</div>
+
+          {showCheck && (
+            <div style={{ marginBottom: 16, background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+              <div style={{ fontWeight: 700, color: C.navy, marginBottom: 8, fontSize: 13 }}>🔍 Quick Check <span style={{ fontWeight: 400, color: C.muted }}>(fast pass, not a grade)</span></div>
+              {checking && <div style={{ color: C.muted, fontSize: 13 }}>Checking…</div>}
+              {check && !check.error && (
+                <>
+                  <div style={{
+                    display: 'inline-block', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, marginBottom: 10,
+                    background: check.readyForGrading ? '#eef7f0' : '#fdf5e8', color: check.readyForGrading ? C.green : C.gold,
+                  }}>
+                    {check.readyForGrading ? '✅ Ready for grading' : '⏳ May need revision first'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#444', marginBottom: 10 }}>{check.readyForGradingReason}</div>
+                  <div style={{ fontSize: 12, color: '#444', marginBottom: 10, fontStyle: 'italic' }}>{check.structureNote}</div>
+                  {(check.issues || []).map((iss, i) => (
+                    <div key={i} style={{ fontSize: 12, marginBottom: 8, paddingLeft: 10, borderLeft: `2px solid ${C.border}` }}>
+                      <span style={{
+                        fontWeight: 700, textTransform: 'uppercase', fontSize: 10, marginRight: 6,
+                        color: iss.category === 'grammar' ? C.red : iss.category === 'clarity' ? C.blue : C.gold,
+                      }}>
+                        {iss.category}
+                      </span>
+                      &quot;{iss.quote}&quot; — {iss.note}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
           {sub.text_content ? (
             <div style={{ whiteSpace: 'pre-wrap', fontSize: 15, lineHeight: 1.7, background: '#fff', padding: 20, borderRadius: 10, border: `1px solid ${C.border}` }}>
               {sub.text_content}
