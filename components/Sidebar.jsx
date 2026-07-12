@@ -55,6 +55,7 @@ export default function Sidebar() {
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '10px 0 6px' }}>Tools</div>
         <SidebarLink href="/worksheets" active={pathname === '/worksheets'}>📄 Worksheet Generator</SidebarLink>
+        <SidebarLink href="/rubrics" active={pathname.startsWith('/rubrics')}>📐 Rubric Library</SidebarLink>
         <SidebarLink href="/admin" active={pathname === '/admin'}>👪 Parent Contacts</SidebarLink>
       </div>
 
@@ -77,4 +78,5 @@ function SidebarLink({ href, active, children }) {
     </Link>
   )
 }
+
 
