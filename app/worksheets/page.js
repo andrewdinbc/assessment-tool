@@ -55,14 +55,16 @@ export default function WorksheetsPage() {
       const res = await fetch('/api/rubrics/extract', { method: 'POST', body: formData })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      const formatted = [
-        data.title ? `Rubric: ${data.title}` : '',
-        '',
-        ...data.criteria.map((c) => `${c.name}:
-` + c.descriptions.map((d, i) => `  ${data.levelNames[i] || `Level ${i + 1}`}: ${d}`).join('
-')),
-      ].filter(Boolean).join('
-')
+      const lines = []
+      if (data.title) lines.push(`Rubric: ${data.title}`, '')
+      for (const c of data.criteria) {
+        lines.push(`${c.name}:`)
+        c.descriptions.forEach((d, i) => {
+          const levelName = data.levelNames[i] || `Level ${i + 1}`
+          lines.push(`  ${levelName}: ${d}`)
+        })
+      }
+      const formatted = lines.join(String.fromCharCode(10))
       setCustomRubric(formatted)
       setExtractedRubricName(file.name)
       if (!title && data.title) setTitle(data.title)
@@ -351,4 +353,5 @@ const inputStyle = {
   width: '100%', padding: 10, border: `1px solid ${C.border}`, borderRadius: 6,
   fontFamily: 'inherit', boxSizing: 'border-box', fontSize: 14,
 }
+
 
