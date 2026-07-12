@@ -50,7 +50,12 @@ export default function Dashboard() {
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 16, marginBottom: 40 }}>
-        <ActionCard icon="✍️" title="Review Writing" desc="Grade submissions and give personalized feedback." href={assignments[0] ? `/review/${assignments[0].id}` : '/'} />
+        <ActionCard
+          icon="✍️"
+          title={assignments.length ? 'Review Writing' : 'Create a Writing Assignment'}
+          desc={assignments.length ? 'Grade submissions and give personalized feedback.' : 'No writing assignments yet — generate one to get started.'}
+          href={assignments[0] ? `/review/${assignments[0].id}` : '/worksheets'}
+        />
         <ActionCard icon="🧮" title="Math Mastery" desc="See class progress across micro-units." href="/analytics/math" />
         <ActionCard icon="📁" title="Student Portfolio" desc="Full history per student, both subjects." href="/students" />
       </div>
@@ -153,3 +158,4 @@ function StatCard({ label, value, color }) {
     </div>
   )
 }
+
