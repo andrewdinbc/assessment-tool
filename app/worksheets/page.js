@@ -8,16 +8,39 @@ const SUBJECTS = [
   { value: 'language_arts', label: 'Language Arts', icon: '✍️' },
 ]
 
+const RIGOR = ['Tolerant', 'Balanced', 'Strict', 'Auto']
+const READING_LEVEL = ['Basic', 'Average', 'Advanced']
+const LENGTH = ['Concise', 'Thorough']
+const TONE = ['Friendly', 'Formal']
+
 export default function WorksheetsPage() {
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('math')
   const [mode, setMode] = useState('upload')
   const [file, setFile] = useState(null)
-  const [rubric, setRubric] = useState('')
+  const [rubricMode, setRubricMode] = useState('auto') // 'auto' | 'custom'
+  const [customRubric, setCustomRubric] = useState('')
+  const [rigor, setRigor] = useState(0)
+  const [readingLevel, setReadingLevel] = useState(0)
+  const [length, setLength] = useState(1)
+  const [tone, setTone] = useState(0)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
   const fileInputRef = useRef(null)
+
+  function composeRubric() {
+    const params = [
+      `Rigor: ${RIGOR[rigor]}`,
+      `Reading level: ${READING_LEVEL[readingLevel]}`,
+      `Length: ${LENGTH[length]}`,
+      `Tone: ${TONE[tone]}`,
+    ].join('. ')
+    const base = rubricMode === 'custom' && customRubric.trim()
+      ? customRubric.trim()
+      : 'Derive reasonable grade-appropriate criteria based on research-based instructional practices.'
+    return `${base}\n\nGrading parameters — ${params}.`
+  }
 
   async function generate(e) {
     e.preventDefault()
@@ -26,7 +49,7 @@ export default function WorksheetsPage() {
       const formData = new FormData()
       formData.append('title', title)
       formData.append('subject', subject)
-      if (rubric.trim()) formData.append('rubric', rubric.trim())
+      formData.append('rubric', composeRubric())
       if (mode === 'upload' && file) formData.append('file', file)
 
       const res = await fetch('/api/worksheets', { method: 'POST', body: formData })
@@ -55,7 +78,6 @@ export default function WorksheetsPage() {
       </p>
 
       <form onSubmit={generate}>
-        {/* Subject selector, styled like CoGrader's Grade-level cards */}
         <SectionLabel>Subject</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}>
           {SUBJECTS.map((s) => (
@@ -77,7 +99,6 @@ export default function WorksheetsPage() {
           ))}
         </div>
 
-        {/* Assignment Details, matching CoGrader's card + heading pattern */}
         <SectionLabel>Assignment Details</SectionLabel>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
           <FieldLabel>Assignment name</FieldLabel>
@@ -88,21 +109,45 @@ export default function WorksheetsPage() {
             required
             style={inputStyle}
           />
-
-          <FieldLabel style={{ marginTop: 20 }}>Rubric</FieldLabel>
-          <p style={{ color: C.muted, fontSize: 12, margin: '2px 0 8px' }}>
-            Optional free-text rubric to guide AI marking. Leave blank and Claude will derive reasonable criteria itself.
-          </p>
-          <textarea
-            value={rubric}
-            onChange={(e) => setRubric(e.target.value)}
-            rows={4}
-            placeholder="Add the rubric or grading instructions"
-            style={{ ...inputStyle, resize: 'vertical' }}
-          />
         </div>
 
-        {/* Content / upload, styled like CoGrader's Source documents block */}
+        {/* Rubric — matching CoGrader's Rubric card */}
+        <SectionLabel>Rubric</SectionLabel>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
+          <p style={{ color: C.muted, fontSize: 13, margin: '0 0 14px' }}>
+            Claude creates a rubric using research-based instructional practices, or write your own.
+          </p>
+          <div style={{ display: 'flex', gap: 10, marginBottom: rubricMode === 'custom' ? 16 : 0 }}>
+            <RubricChoiceButton active={rubricMode === 'auto'} onClick={() => setRubricMode('auto')} icon="✨">
+              Claude Rubric
+            </RubricChoiceButton>
+            <RubricChoiceButton active={rubricMode === 'custom'} onClick={() => setRubricMode('custom')} icon="📄">
+              Write my own
+            </RubricChoiceButton>
+          </div>
+          {rubricMode === 'custom' && (
+            <textarea
+              value={customRubric}
+              onChange={(e) => setCustomRubric(e.target.value)}
+              rows={4}
+              placeholder="Add the rubric or grading instructions"
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          )}
+        </div>
+
+        {/* Grading Parameters — matching CoGrader's slider group */}
+        <SectionLabel>Grading Parameters</SectionLabel>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
+          <p style={{ color: C.muted, fontSize: 13, margin: '0 0 20px' }}>
+            These directly shape how Claude marks student work — not decorative.
+          </p>
+          <ParamSlider label="Rigor" options={RIGOR} value={rigor} onChange={setRigor} />
+          <ParamSlider label="Reading Level" options={READING_LEVEL} value={readingLevel} onChange={setReadingLevel} />
+          <ParamSlider label="Length" options={LENGTH} value={length} onChange={setLength} />
+          <ParamSlider label="Tone" options={TONE} value={tone} onChange={setTone} last />
+        </div>
+
         <SectionLabel>Worksheet Content</SectionLabel>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
@@ -175,6 +220,50 @@ function ModeButton({ active, onClick, children }) {
     }}>
       {children}
     </button>
+  )
+}
+
+function RubricChoiceButton({ active, onClick, icon, children }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      flex: 1, padding: '12px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+      background: active ? '#fdf6ea' : '#fff', color: active ? C.gold : C.navy,
+      border: active ? `2px solid ${C.gold}` : `1px solid ${C.border}`, fontWeight: active ? 700 : 400,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    }}>
+      <span>{icon}</span> {children}
+    </button>
+  )
+}
+
+function ParamSlider({ label, options, value, onChange, last }) {
+  return (
+    <div style={{ marginBottom: last ? 0 : 24 }}>
+      <div style={{
+        background: '#f2ede3', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 700,
+        color: C.navy, textAlign: 'center', marginBottom: 12,
+      }}>
+        {label}
+      </div>
+      <div style={{ position: 'relative', padding: '0 4px' }}>
+        <input
+          type="range"
+          min={0}
+          max={options.length - 1}
+          step={1}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          style={{ width: '100%', accentColor: C.gold }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 4 }}>
+          {options.map((opt, i) => (
+            <span key={opt} style={{ color: i === value ? C.gold : C.muted, fontWeight: i === value ? 700 : 400 }}>
+              {opt}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
