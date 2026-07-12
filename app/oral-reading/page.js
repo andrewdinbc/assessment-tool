@@ -5,7 +5,7 @@ import { C } from '../../lib/theme'
 export default function OralReadingDashboard() {
   const [passages, setPassages] = useState([])
   const [schedules, setSchedules] = useState([])
-  const [pendingAttempts, setPendingAttempts] = useState([])
+  const [queue, setQueue] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('score') // 'score' | 'schedule' | 'passages'
 
@@ -13,21 +13,16 @@ export default function OralReadingDashboard() {
   const [scheduleQrId, setScheduleQrId] = useState('')
   const [frequency, setFrequency] = useState('weekly')
 
-  // scoring form (per attempt)
-  const [scoringId, setScoringId] = useState(null)
-  const [miscueCount, setMiscueCount] = useState('')
-  const [secondsTaken, setSecondsTaken] = useState('')
-  const [scoreResult, setScoreResult] = useState(null)
-  const [scoring, setScoring] = useState(false)
-
   async function load() {
     setLoading(true)
-    const [pRes, sRes] = await Promise.all([
+    const [pRes, sRes, qRes] = await Promise.all([
       fetch('/api/oral-reading/passages').then((r) => r.json()),
       fetch('/api/oral-reading/schedule').then((r) => r.json()),
+      fetch('/api/oral-reading/queue').then((r) => r.json()),
     ])
     setPassages(pRes.passages || [])
     setSchedules(sRes.schedules || [])
+    setQueue(qRes.queue || [])
     setLoading(false)
   }
 
@@ -44,20 +39,6 @@ export default function OralReadingDashboard() {
     load()
   }
 
-  async function submitScore(attemptId) {
-    setScoring(true)
-    try {
-      const res = await fetch(`/api/oral-reading/attempts/${attemptId}/score`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ miscueCount: parseInt(miscueCount, 10), secondsTaken: secondsTaken ? parseInt(secondsTaken, 10) : null }),
-      })
-      const data = await res.json()
-      setScoreResult(data)
-    } finally {
-      setScoring(false)
-    }
-  }
-
   const dueCount = schedules.filter((s) => s.isDue).length
 
   return (
@@ -69,7 +50,9 @@ export default function OralReadingDashboard() {
       </p>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-        <TabButton active={tab === 'score'} onClick={() => setTab('score')}>📋 Scoring Queue</TabButton>
+        <TabButton active={tab === 'score'} onClick={() => setTab('score')}>
+          📋 Scoring Queue {queue.length > 0 && <Badge>{queue.length}</Badge>}
+        </TabButton>
         <TabButton active={tab === 'schedule'} onClick={() => setTab('schedule')}>
           📅 Schedule {dueCount > 0 && <Badge>{dueCount} due</Badge>}
         </TabButton>
@@ -132,19 +115,81 @@ export default function OralReadingDashboard() {
       )}
 
       {tab === 'score' && !loading && (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
-          <p style={{ color: C.muted, fontSize: 13, marginBottom: 12 }}>
-            Comprehension is already AI-scored. Fluency needs you to listen to the recording and
-            count miscues — audio playback wiring is still pending (recordings currently stay
-            on-device; storage upload is the next piece to finish before this queue is fully live).
-          </p>
-          <ScoringForm
-            miscueCount={miscueCount} setMiscueCount={setMiscueCount}
-            secondsTaken={secondsTaken} setSecondsTaken={setSecondsTaken}
-            scoreResult={scoreResult} scoring={scoring}
-            onSubmit={() => scoringId && submitScore(scoringId)}
-            scoringId={scoringId} setScoringId={setScoringId}
-          />
+        <div>
+          {queue.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.muted, fontStyle: 'italic' }}>
+              Nothing waiting to be scored.
+            </div>
+          )}
+          {queue.map((attempt) => (
+            <QueueItem key={attempt.id} attempt={attempt} onScored={load} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function QueueItem({ attempt, onScored }) {
+  const [miscueCount, setMiscueCount] = useState('')
+  const [secondsTaken, setSecondsTaken] = useState('')
+  const [scoring, setScoring] = useState(false)
+  const [scoreResult, setScoreResult] = useState(null)
+  const [error, setError] = useState('')
+
+  async function submitScore() {
+    if (miscueCount === '') return
+    setScoring(true); setError('')
+    try {
+      const res = await fetch(`/api/oral-reading/attempts/${attempt.id}/score`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ miscueCount: parseInt(miscueCount, 10), secondsTaken: secondsTaken ? parseInt(secondsTaken, 10) : null }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setScoreResult(data)
+      setTimeout(onScored, 1200)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setScoring(false)
+    }
+  }
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <strong style={{ color: C.navy }}>{attempt.qr_id}</strong>
+          <span style={{ color: C.muted, fontSize: 13 }}> · {attempt.passage?.title} ({attempt.passage?.word_count} words)</span>
+        </div>
+        <span style={{ fontSize: 12, color: C.muted }}>{new Date(attempt.created_at).toLocaleString()}</span>
+      </div>
+
+      {attempt.recording_url ? (
+        <audio controls src={attempt.recording_url} style={{ width: '100%', marginBottom: 12 }} />
+      ) : (
+        <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 12 }}>No recording attached to this attempt.</div>
+      )}
+
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+        Comprehension already scored: <strong style={{ color: C.navy }}>{attempt.comprehension_score_pct}%</strong>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+        <input type="number" value={miscueCount} onChange={(e) => setMiscueCount(e.target.value)} placeholder="Miscues counted" style={{ flex: 1, padding: 10, border: `1px solid ${C.border}`, borderRadius: 6 }} />
+        <input type="number" value={secondsTaken} onChange={(e) => setSecondsTaken(e.target.value)} placeholder="Seconds taken (for WCPM)" style={{ flex: 1, padding: 10, border: `1px solid ${C.border}`, borderRadius: 6 }} />
+        <button onClick={submitScore} disabled={scoring || miscueCount === ''} style={{ padding: '10px 20px', background: C.navy, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+          {scoring ? 'Scoring…' : 'Score'}
+        </button>
+      </div>
+
+      {error && <div style={{ color: C.red, fontSize: 13 }}>{error}</div>}
+      {scoreResult && (
+        <div style={{ padding: 12, background: '#eef7f0', borderRadius: 8, fontSize: 13 }}>
+          Accuracy: {scoreResult.accuracyPct}% · WCPM: {scoreResult.wcpm ?? '—'}
+          <br />
+          <strong>Level: {scoreResult.levelDetermination || 'Needs judgment call (between bands)'}</strong>
         </div>
       )}
     </div>
@@ -167,29 +212,3 @@ function Badge({ children }) {
   return <span style={{ background: '#fdecea', color: '#c0392b', borderRadius: 20, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>{children}</span>
 }
 
-function ScoringForm({ scoringId, setScoringId, miscueCount, setMiscueCount, secondsTaken, setSecondsTaken, onSubmit, scoring, scoreResult }) {
-  return (
-    <div>
-      <input
-        value={scoringId || ''}
-        onChange={(e) => setScoringId(e.target.value)}
-        placeholder="Attempt ID to score"
-        style={{ width: '100%', padding: 10, marginBottom: 10, border: `1px solid #ddd4c2`, borderRadius: 6, fontFamily: 'inherit', boxSizing: 'border-box' }}
-      />
-      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-        <input type="number" value={miscueCount} onChange={(e) => setMiscueCount(e.target.value)} placeholder="Miscues counted" style={{ flex: 1, padding: 10, border: `1px solid #ddd4c2`, borderRadius: 6 }} />
-        <input type="number" value={secondsTaken} onChange={(e) => setSecondsTaken(e.target.value)} placeholder="Seconds taken" style={{ flex: 1, padding: 10, border: `1px solid #ddd4c2`, borderRadius: 6 }} />
-      </div>
-      <button onClick={onSubmit} disabled={scoring || !scoringId} style={{ padding: '10px 20px', background: '#1c3557', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
-        {scoring ? 'Scoring…' : 'Score Fluency'}
-      </button>
-      {scoreResult && (
-        <div style={{ marginTop: 16, padding: 14, background: '#eef7f0', borderRadius: 8, fontSize: 13 }}>
-          Accuracy: {scoreResult.accuracyPct}% · WCPM: {scoreResult.wcpm ?? '—'} · Comprehension: {scoreResult.comprehensionPct}%
-          <br />
-          <strong>Level: {scoreResult.levelDetermination || 'Needs judgment call (between bands)'}</strong>
-        </div>
-      )}
-    </div>
-  )
-}
