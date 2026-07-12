@@ -51,6 +51,12 @@ export default function Sidebar() {
         <SidebarLink href="/analytics/math" active={pathname === '/analytics/math'}>Class Overview</SidebarLink>
       </div>
 
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, margin: '10px 0 6px' }}>Tools</div>
+        <SidebarLink href="/worksheets" active={pathname === '/worksheets'}>📄 Worksheet Generator</SidebarLink>
+        <SidebarLink href="/admin" active={pathname === '/admin'}>👪 Parent Contacts</SidebarLink>
+      </div>
+
       <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
         <SidebarLink href="/" active={pathname === '/'}>📊 Dashboard</SidebarLink>
       </div>
