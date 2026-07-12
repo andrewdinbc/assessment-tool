@@ -18,8 +18,12 @@ export default function WorksheetsPage() {
   const [subject, setSubject] = useState('math')
   const [mode, setMode] = useState('upload')
   const [file, setFile] = useState(null)
-  const [rubricMode, setRubricMode] = useState('auto') // 'auto' | 'custom'
+  const [rubricMode, setRubricMode] = useState('auto') // 'auto' | 'custom' | 'upload'
   const [customRubric, setCustomRubric] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractedRubricName, setExtractedRubricName] = useState('')
+  const [dragActive, setDragActive] = useState(false)
+  const rubricFileInputRef = useRef(null)
   const [rigor, setRigor] = useState(0)
   const [readingLevel, setReadingLevel] = useState(0)
   const [length, setLength] = useState(1)
@@ -36,10 +40,44 @@ export default function WorksheetsPage() {
       `Length: ${LENGTH[length]}`,
       `Tone: ${TONE[tone]}`,
     ].join('. ')
-    const base = rubricMode === 'custom' && customRubric.trim()
+    const base = (rubricMode === 'custom' || rubricMode === 'upload') && customRubric.trim()
       ? customRubric.trim()
       : 'Derive reasonable grade-appropriate criteria based on research-based instructional practices.'
     return `${base}\n\nGrading parameters — ${params}.`
+  }
+
+  async function extractRubricFile(file) {
+    if (!file) return
+    setExtracting(true); setError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/rubrics/extract', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const formatted = [
+        data.title ? `Rubric: ${data.title}` : '',
+        '',
+        ...data.criteria.map((c) => `${c.name}:
+` + c.descriptions.map((d, i) => `  ${data.levelNames[i] || `Level ${i + 1}`}: ${d}`).join('
+')),
+      ].filter(Boolean).join('
+')
+      setCustomRubric(formatted)
+      setExtractedRubricName(file.name)
+      if (!title && data.title) setTitle(data.title)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    setDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) extractRubricFile(file)
   }
 
   async function generate(e) {
@@ -115,21 +153,63 @@ export default function WorksheetsPage() {
         <SectionLabel>Rubric</SectionLabel>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
           <p style={{ color: C.muted, fontSize: 13, margin: '0 0 14px' }}>
-            Claude creates a rubric using research-based instructional practices, or write your own.
+            Claude creates a rubric using research-based instructional practices, write your own, or upload one you already have.
           </p>
-          <div style={{ display: 'flex', gap: 10, marginBottom: rubricMode === 'custom' ? 16 : 0 }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
             <RubricChoiceButton active={rubricMode === 'auto'} onClick={() => setRubricMode('auto')} icon="✨">
               Claude Rubric
             </RubricChoiceButton>
             <RubricChoiceButton active={rubricMode === 'custom'} onClick={() => setRubricMode('custom')} icon="📄">
               Write my own
             </RubricChoiceButton>
+            <RubricChoiceButton active={rubricMode === 'upload'} onClick={() => setRubricMode('upload')} icon="⬆️">
+              Upload a rubric
+            </RubricChoiceButton>
           </div>
-          {rubricMode === 'custom' && (
+
+          {rubricMode === 'upload' && (
+            <div>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                style={{
+                  border: `2px dashed ${dragActive ? C.gold : C.border}`, borderRadius: 8, padding: 28,
+                  textAlign: 'center', background: dragActive ? '#fdf6ea' : '#fafaf7', marginBottom: 12,
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 8 }}>⬆️</div>
+                <div style={{ fontSize: 13, color: C.navy, marginBottom: 10 }}>
+                  {extracting ? 'Reading rubric…' : 'Drag and drop a rubric here (PDF or photo/scan)'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => rubricFileInputRef.current?.click()}
+                  disabled={extracting}
+                  style={{ padding: '8px 18px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer' }}
+                >
+                  {extracting ? 'Reading…' : 'Choose File'}
+                </button>
+                <input
+                  ref={rubricFileInputRef}
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => extractRubricFile(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+              </div>
+              {extractedRubricName && !extracting && (
+                <div style={{ fontSize: 12, color: C.green, marginBottom: 12 }}>✅ Extracted from {extractedRubricName} — review below before generating.</div>
+              )}
+            </div>
+          )}
+
+          {(rubricMode === 'custom' || (rubricMode === 'upload' && customRubric)) && (
             <textarea
               value={customRubric}
               onChange={(e) => setCustomRubric(e.target.value)}
-              rows={4}
+              rows={6}
               placeholder="Add the rubric or grading instructions"
               style={{ ...inputStyle, resize: 'vertical' }}
             />
@@ -271,3 +351,4 @@ const inputStyle = {
   width: '100%', padding: 10, border: `1px solid ${C.border}`, borderRadius: 6,
   fontFamily: 'inherit', boxSizing: 'border-box', fontSize: 14,
 }
+
