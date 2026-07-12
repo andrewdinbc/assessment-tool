@@ -54,6 +54,7 @@ export default function Sidebar() {
 
       <div style={{ marginBottom: 18 }}>
         <SidebarLink href="/skills" active={pathname === '/skills'}>🎯 Skill & Growth Trends</SidebarLink>
+        <SidebarLink href="/oral-reading" active={pathname === '/oral-reading'}>📚 Oral Reading</SidebarLink>
       </div>
 
       <div style={{ marginBottom: 18 }}>
@@ -84,6 +85,7 @@ function SidebarLink({ href, active, children }) {
     </Link>
   )
 }
+
 
 
 
