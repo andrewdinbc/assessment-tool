@@ -22,7 +22,8 @@ export default function Sidebar() {
 
   return (
     <div style={{
-      width: 260, minHeight: '100vh', background: C.sidebarBg, borderRight: `1px solid ${C.border}`,
+      width: 260, height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start',
+      background: C.sidebarBg, borderRight: `1px solid ${C.border}`, overflowY: 'auto',
       padding: '24px 20px', fontFamily: 'Georgia, serif', display: 'flex', flexDirection: 'column',
     }}>
       <Link href="/" style={{ textDecoration: 'none' }}>
