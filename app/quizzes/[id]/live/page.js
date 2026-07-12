@@ -81,10 +81,11 @@ export default function LiveQuizSessionPage() {
         </div>
 
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             <StatCard label="Checked in" value={status?.counts?.checkedIn ?? 0} color={C.navy} />
             <StatCard label="Completed" value={status?.counts?.completed ?? 0} color={C.green} />
-            <StatCard label="May have left" value={status?.counts?.likelyAway ?? 0} color={C.red} />
+            <StatCard label="May have left" value={status?.counts?.likelyAway ?? 0} color={C.gold} />
+            <StatCard label="Left the quiz (detected)" value={status?.counts?.flagged ?? 0} color={C.red} />
           </div>
 
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
@@ -119,10 +120,22 @@ function StatCard({ label, value, color }) {
 
 function StatusBadge({ device }) {
   if (device.status === 'completed') {
-    return <span style={{ color: C.green, fontWeight: 600 }}>✅ Completed — {device.score_pct}%</span>
+    return (
+      <span style={{ color: C.green, fontWeight: 600 }}>
+        ✅ Completed — {device.score_pct}%{device.attempt_count > 1 ? ` (attempt ${device.attempt_count})` : ''}
+      </span>
+    )
+  }
+  if (device.recentlyFlagged) {
+    return (
+      <span style={{ color: C.red, fontWeight: 700 }} title="This device reported leaving the quiz tab/app in the last minute - detected directly, not inferred.">
+        🚨 Left the quiz ({device.offQuizEventCount}x)
+      </span>
+    )
   }
   if (device.likelyAway) {
-    return <span style={{ color: C.red, fontWeight: 600 }} title="No activity in 45s+ - may have left the quiz. Cannot confirm what else the device is doing.">⚠️ May have left ({device.idleSeconds}s idle)</span>
+    return <span style={{ color: C.gold, fontWeight: 600 }} title="No activity in 45s+ - may have left the quiz. Cannot confirm what else the device is doing.">⚠️ May have left ({device.idleSeconds}s idle)</span>
   }
   return <span style={{ color: C.navy }}>🟢 Active</span>
 }
+
