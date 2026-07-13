@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { C, LEVELS } from '../../../lib/theme'
+import Tooltip from '../../../components/Tooltip'
 
 export default function ReviewPage() {
   const params = useParams()
@@ -121,11 +122,15 @@ export default function ReviewPage() {
             ⚡ Rate all papers first →
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
-              style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 20, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
+            <Tooltip text="Go to the previous student's submission in this assignment." width={180}>
+              <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 20, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
+            </Tooltip>
             <span style={{ fontSize: 13 }}>{idx + 1} of {submissions.length}</span>
-            <button onClick={() => setIdx((i) => Math.min(submissions.length - 1, i + 1))} disabled={idx === submissions.length - 1}
-              style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === submissions.length - 1 ? 'default' : 'pointer', fontSize: 20, opacity: idx === submissions.length - 1 ? 0.3 : 1 }}>›</button>
+            <Tooltip text="Go to the next student's submission in this assignment." width={180}>
+              <button onClick={() => setIdx((i) => Math.min(submissions.length - 1, i + 1))} disabled={idx === submissions.length - 1}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: idx === submissions.length - 1 ? 'default' : 'pointer', fontSize: 20, opacity: idx === submissions.length - 1 ? 0.3 : 1 }}>›</button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -136,11 +141,13 @@ export default function ReviewPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <div style={{ fontWeight: 700, color: C.navy, fontSize: 15 }}>Student: {sub.qr_id}</div>
             {sub.text_content && (
-              <button onClick={requestCheck} disabled={checking} style={{
-                padding: '5px 12px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer',
-              }}>
-                {checking ? 'Checking…' : '🔍 Quick Check'}
-              </button>
+              <Tooltip text="Fast grammar/clarity pass on the raw text — separate from the full rubric marking below, useful as a quick first look." width={220}>
+                <button onClick={requestCheck} disabled={checking} style={{
+                  padding: '5px 12px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.navy, cursor: 'pointer',
+                }}>
+                  {checking ? 'Checking…' : '🔍 Quick Check'}
+                </button>
+              </Tooltip>
             )}
           </div>
           <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Submitted {new Date(sub.submitted_at).toLocaleString()}</div>
@@ -191,11 +198,13 @@ export default function ReviewPage() {
           {!draft ? (
             <div style={{ textAlign: 'center', paddingTop: 40 }}>
               <p style={{ color: C.muted, marginBottom: 16 }}>No AI feedback generated yet for this submission.</p>
-              <button onClick={requestMarking} disabled={marking} style={{
-                padding: '10px 20px', background: C.gold, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
-              }}>
-                {marking ? 'Marking…' : '✨ Generate AI Feedback'}
-              </button>
+              <Tooltip text="Runs the full rubric-based AI marking against this student's submission — scores every criterion with justification quotes, editable before you approve." width={240}>
+                <button onClick={requestMarking} disabled={marking} style={{
+                  padding: '10px 20px', background: C.gold, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {marking ? 'Marking…' : '✨ Generate AI Feedback'}
+                </button>
+              </Tooltip>
             </div>
           ) : draft.error ? (
             <div style={{ color: '#c0392b' }}>AI marking failed: {draft.error}</div>
@@ -227,12 +236,14 @@ export default function ReviewPage() {
           {draft && !draft.error && (
             <>
               <div style={{ fontSize: 26, fontWeight: 700, color: C.navy, marginBottom: 16 }}>{draft.overallScore} / {draft.maxScore}</div>
-              <button onClick={saveAndApprove} disabled={saving} style={{
-                width: '100%', padding: '12px 0', background: C.green, color: '#fff', border: 'none', borderRadius: 8,
-                fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 20,
-              }}>
-                {saving ? 'Saving…' : '✅ Approve & Next'}
-              </button>
+              <Tooltip text="Saves your edited scores/levels to the student's portfolio and moves to the next submission — this is the final, real save." width={220}>
+                <button onClick={saveAndApprove} disabled={saving} style={{
+                  width: '100%', padding: '12px 0', background: C.green, color: '#fff', border: 'none', borderRadius: 8,
+                  fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 20,
+                }}>
+                  {saving ? 'Saving…' : '✅ Approve & Next'}
+                </button>
+              </Tooltip>
 
               <FeedbackBlock icon="🌟" title="Glow" color="#b8860b" bg="#fef9ec" items={draft.glow} />
               <FeedbackBlock icon="🌱" title="Grow" color={C.green} bg="#eef7f0" items={draft.grow} />
@@ -255,3 +266,4 @@ function FeedbackBlock({ icon, title, color, bg, items }) {
     </div>
   )
 }
+
