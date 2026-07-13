@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { C } from '../../../lib/theme'
+import Tooltip from '../../../components/Tooltip'
 
 const SCALE_LEVEL_NAMES = {
   3: ['Below Standard', 'Approaching', 'Meets Standard'],
@@ -117,8 +118,12 @@ export default function RubricBuilderPage() {
       <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 20px' }}>Create manually</h1>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
-        <ModeButton active={mode === 'manual'} onClick={() => setMode('manual')}>✍️ Write my own</ModeButton>
-        <ModeButton active={mode === 'ai'} onClick={() => setMode('ai')}>✨ Claude drafts it</ModeButton>
+        <Tooltip text="Build the rubric yourself, criterion by criterion, with full control over the wording at each level.">
+          <ModeButton active={mode === 'manual'} onClick={() => setMode('manual')}>✍️ Write my own</ModeButton>
+        </Tooltip>
+        <Tooltip text="Claude drafts criteria and level descriptions from your assignment description — you review and edit before saving, nothing saves automatically.">
+          <ModeButton active={mode === 'ai'} onClick={() => setMode('ai')}>✨ Claude drafts it</ModeButton>
+        </Tooltip>
       </div>
 
       {mode === 'ai' && (
@@ -167,23 +172,27 @@ export default function RubricBuilderPage() {
               </select>
             </div>
           </div>
-          <button
-            onClick={generateWithAI}
-            disabled={generating || !assignmentDescription.trim()}
-            style={{ width: '100%', padding: 14, background: C.gold, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 15 }}
-          >
-            {generating ? 'Generating…' : 'Generate Rubric'}
-          </button>
+          <Tooltip text="Runs Claude against your description to draft criteria and level text — drops into the editable grid below for you to review, doesn't save anything yet." width={240}>
+            <button
+              onClick={generateWithAI}
+              disabled={generating || !assignmentDescription.trim()}
+              style={{ width: '100%', padding: 14, background: C.gold, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 15 }}
+            >
+              {generating ? 'Generating…' : 'Generate Rubric'}
+            </button>
+          </Tooltip>
         </div>
       )}
 
       {mode === 'manual' && (
         <>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-            {[3, 4, 5].map((n) => (
-              <ScaleButton key={n} active={scale === n} onClick={() => setScaleAndReset(n)}>{n}-Point</ScaleButton>
-            ))}
-          </div>
+          <Tooltip text="Choose how many performance levels this rubric has — changes the grid below to match. Switching after you've started typing resets the level columns." width={240}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              {[3, 4, 5].map((n) => (
+                <ScaleButton key={n} active={scale === n} onClick={() => setScaleAndReset(n)}>{n}-Point</ScaleButton>
+              ))}
+            </div>
+          </Tooltip>
 
           <FieldLabel>Rubric Title</FieldLabel>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Grade 5 Persuasive Essay Rubric" style={{ ...inputStyle, marginBottom: 24 }} />
@@ -202,9 +211,11 @@ export default function RubricBuilderPage() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <FieldLabel style={{ marginBottom: 0 }}>Criteria</FieldLabel>
-            <button onClick={() => setCriteria((cs) => [...cs, newCriterion(scale)])} style={{ background: 'none', border: 'none', color: C.gold, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
-              + Add Criterion
-            </button>
+            <Tooltip text="Adds a new blank criterion row to the grid below.">
+              <button onClick={() => setCriteria((cs) => [...cs, newCriterion(scale)])} style={{ background: 'none', border: 'none', color: C.gold, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                + Add Criterion
+              </button>
+            </Tooltip>
           </div>
 
           {criteria.map((c) => (
@@ -235,13 +246,15 @@ export default function RubricBuilderPage() {
             </div>
           ))}
 
-          <button
-            onClick={save}
-            disabled={saving || !title.trim() || criteria.some((c) => !c.name.trim())}
-            style={{ width: '100%', padding: 16, background: C.navy, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 15, marginTop: 8 }}
-          >
-            {saving ? 'Saving…' : '📐 Generate Rubric'}
-          </button>
+          <Tooltip text="Saves this rubric to your library — it'll be available to attach to any assignment from then on." width={220}>
+            <button
+              onClick={save}
+              disabled={saving || !title.trim() || criteria.some((c) => !c.name.trim())}
+              style={{ width: '100%', padding: 16, background: C.navy, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 15, marginTop: 8 }}
+            >
+              {saving ? 'Saving…' : '📐 Generate Rubric'}
+            </button>
+          </Tooltip>
         </>
       )}
 
@@ -281,3 +294,4 @@ const inputStyle = {
   width: '100%', padding: 10, border: `1px solid ${C.border}`, borderRadius: 6,
   fontFamily: 'inherit', boxSizing: 'border-box', fontSize: 14,
 }
+
