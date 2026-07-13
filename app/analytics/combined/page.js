@@ -1,103 +1,282 @@
-'use client'
-import { useState, useEffect } from 'react'
+'use client';
 
-const C = { navy: '#1c3557', gold: '#b57c2a', green: '#1a7a3e', red: '#b03a2e', border: '#ddd4c2', bg: '#f2ede3' }
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Tooltip from '@/components/Tooltip';
 
 export default function CombinedAnalyticsPage() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter();
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({
+    sortBy: 'score-desc',
+    skillFilter: null,
+    statusFilter: 'all',
+  });
 
   useEffect(() => {
-    fetch('/api/combined-analytics')
-      .then((res) => res.json())
-      .then(setData)
-      .catch((e) => setData({ error: e.message }))
-      .finally(() => setLoading(false))
-  }, [])
+    fetchAnalytics();
+  }, [filters]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams(filters);
+      const res = await fetch(`/api/analytics/combined?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      const data = await res.json();
+      setAnalytics(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportFullReport = async () => {
+    try {
+      const params = new URLSearchParams(filters);
+      const res = await fetch(`/api/analytics/combined/export?${params}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `combined-analytics-${Date.now()}.xlsx`;
+      a.click();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      const res = await fetch('/api/analytics/combined/report', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      router.push(`/reports/${data.reportId}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (loading) return <div className="p-8">Loading...</div>;
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'Georgia, serif', padding: 32 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
-        <h1 style={{ color: C.navy, fontSize: 26 }}>Combined Analytics</h1>
-        <p style={{ color: '#8a7d6e', fontSize: 13, marginBottom: 24 }}>
-          Overview / Patterns / Strengths / Areas for Growth — merging Mastery Studio and Assessment Tool data sources.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-800">
+            Combined Analytics
+          </h1>
+          <div className="flex gap-3">
+            <Tooltip content="Go back to admin dashboard">
+              <button
+                onClick={() => router.push('/admin')}
+                className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                ← Back
+              </button>
+            </Tooltip>
 
-        {loading && <div style={{ color: '#8a7d6e' }}>Loading…</div>}
+            <Tooltip content="Download all data as Excel spreadsheet">
+              <button
+                onClick={handleExportFullReport}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Export Data
+              </button>
+            </Tooltip>
 
-        {data && !loading && (
-          <>
-            <Section title="🧮 Mastery Studio (math practice)" block={data.masteryStudio} />
-            <Section title="📝 Assessment Tool (rubric-based review)" block={data.assessmentTool} />
-          </>
+            <Tooltip content="Create a comprehensive analysis report">
+              <button
+                onClick={handleGenerateReport}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Generate Report
+              </button>
+            </Tooltip>
+
+            <Tooltip content="Refresh all analytics data">
+              <button
+                onClick={() => setFilters({ ...filters })}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Refresh
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
         )}
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="font-semibold text-slate-800 mb-4">Filters</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Sort By
+              </label>
+              <select
+                value={filters.sortBy}
+                onChange={(e) =>
+                  setFilters({ ...filters, sortBy: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="score-desc">Highest Score</option>
+                <option value="score-asc">Lowest Score</option>
+                <option value="recent">Most Recent</option>
+                <option value="name">Student Name</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Skill
+              </label>
+              <select
+                value={filters.skillFilter || ''}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    skillFilter: e.target.value || null,
+                  })
+                }
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Skills</option>
+                {analytics?.skills?.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Status
+              </label>
+              <select
+                value={filters.statusFilter}
+                onChange={(e) =>
+                  setFilters({ ...filters, statusFilter: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Status</option>
+                <option value="passing">Passing Only</option>
+                <option value="failing">Failing Only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-slate-600 text-sm mb-2">Total Students</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {analytics?.total_students}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-slate-600 text-sm mb-2">Class Average</p>
+            <p className="text-3xl font-bold text-blue-600">
+              {analytics?.class_average?.toFixed(1)}%
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-slate-600 text-sm mb-2">Passing Rate</p>
+            <p className="text-3xl font-bold text-green-600">
+              {analytics?.passing_rate?.toFixed(1)}%
+            </p>
+          </div>
+        </div>
+
+        {/* Student Results Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100 border-b">
+              <tr>
+                <th className="px-6 py-3 text-left font-semibold text-slate-700">
+                  Student
+                </th>
+                <th className="px-6 py-3 text-left font-semibold text-slate-700">
+                  Overall Score
+                </th>
+                <th className="px-6 py-3 text-left font-semibold text-slate-700">
+                  Assignments
+                </th>
+                <th className="px-6 py-3 text-left font-semibold text-slate-700">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right font-semibold text-slate-700">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics?.students?.map((student) => (
+                <tr key={student.id} className="border-b hover:bg-slate-50">
+                  <td className="px-6 py-4 text-slate-900 font-medium">
+                    {student.name}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-bold text-blue-600">
+                      {student.overall_score?.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-slate-600">
+                    {student.completed_assignments}/{student.total_assignments}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        student.passing
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {student.passing ? 'Passing' : 'At Risk'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right space-x-2">
+                    <Tooltip content="View this student's detailed performance">
+                      <button
+                        onClick={() =>
+                          router.push(`/analytics/student/${student.id}`)
+                        }
+                        className="text-blue-600 hover:text-blue-800 font-medium transition"
+                      >
+                        Details
+                      </button>
+                    </Tooltip>
+
+                    <Tooltip content="View summary of all assignments for this student">
+                      <button
+                        onClick={() =>
+                          router.push(`/analytics/student/${student.id}/summary`)
+                        }
+                        className="text-purple-600 hover:text-purple-800 font-medium transition"
+                      >
+                        Summary
+                      </button>
+                    </Tooltip>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  )
-}
-
-function Section({ title, block }) {
-  return (
-    <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, padding: 20, marginBottom: 20 }}>
-      <h2 style={{ color: C.navy, fontSize: 18, marginTop: 0 }}>{title}</h2>
-
-      {block?.error && <div style={{ color: C.red, fontSize: 13 }}>⚠️ {block.error}</div>}
-      {block?.note && <div style={{ color: '#8a7d6e', fontSize: 13, fontStyle: 'italic' }}>{block.note}</div>}
-
-      {block?.data && (
-        <>
-          <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
-            <Stat label="Total Attempts" value={block.data.overview.totalAttempts} />
-            <Stat label="Avg Score" value={`${block.data.overview.avgScorePct}%`} />
-            <Stat label="Mastery Rate" value={`${block.data.overview.masteryRatePct}%`} />
-          </div>
-
-          {block.data.patterns?.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 14, color: C.navy }}>Patterns</h3>
-              <ul style={{ fontSize: 13 }}>
-                {block.data.patterns.map((p) => (
-                  <li key={p.errorType}>{p.errorType} — {p.count} occurrences across {p.affectedStudentCount} students</li>
-                ))}
-              </ul>
-            </>
-          )}
-
-          {block.data.strengths?.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 14, color: C.green }}>Strengths</h3>
-              <ul style={{ fontSize: 13 }}>
-                {block.data.strengths.map((s) => (
-                  <li key={s.strand}>{s.strand} — {s.avgScorePct}% average</li>
-                ))}
-              </ul>
-            </>
-          )}
-
-          {block.data.areasForGrowth?.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 14, color: C.red }}>Areas for Growth</h3>
-              <ul style={{ fontSize: 13 }}>
-                {block.data.areasForGrowth.map((s) => (
-                  <li key={s.strand}>
-                    {s.strand} — {s.avgScorePct}% average
-                    {s.studentNames?.length > 0 && ` (${s.studentNames.join(', ')})`}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </>
-      )}
-    </div>
-  )
-}
-
-function Stat({ label, value }) {
-  return (
-    <div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: C.navy }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#8a7d6e' }}>{label}</div>
-    </div>
-  )
+  );
 }

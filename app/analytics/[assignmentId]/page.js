@@ -1,151 +1,236 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import { C } from '../../../lib/theme'
+'use client';
 
-const TABS = [
-  { key: 'overview', label: 'Overview', icon: '📊' },
-  { key: 'strengths', label: 'Strengths', icon: '📈' },
-  { key: 'growth', label: 'Areas for growth', icon: '🎯' },
-]
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Tooltip from '@/components/Tooltip';
 
-export default function AnalyticsPage() {
-  const params = useParams()
-  const assignmentId = params.assignmentId
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('overview')
+export default function AssignmentAnalyticsPage() {
+  const router = useRouter();
+  const params = useParams();
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/writing-analytics?assignmentId=${assignmentId}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch((e) => setData({ error: e.message }))
-      .finally(() => setLoading(false))
-  }, [assignmentId])
+    if (params.assignmentId) {
+      fetchAnalytics();
+    }
+  }, [params.assignmentId]);
 
-  if (loading) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: C.muted }}>Loading…</div>
-  if (data?.error) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: '#c0392b' }}>{data.error}</div>
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/analytics/${params.assignmentId}`);
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      const data = await res.json();
+      setAnalytics(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const { assignment, submissionCount, approvedCount, overview, patterns } = data || {}
+  const handleExportResults = async () => {
+    try {
+      const res = await fetch(
+        `/api/analytics/${params.assignmentId}/export`
+      );
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-${params.assignmentId}-${Date.now()}.csv`;
+      a.click();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleResetResponses = async () => {
+    if (
+      !confirm(
+        'Are you sure? This will delete all student responses for this assignment.'
+      )
+    )
+      return;
+
+    try {
+      const res = await fetch(
+        `/api/analytics/${params.assignmentId}/reset`,
+        { method: 'POST' }
+      );
+      if (!res.ok) throw new Error('Failed to reset responses');
+      await fetchAnalytics();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (!analytics) return <div className="p-8">No data available</div>;
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 1200 }}>
-      <Link href="/" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
-      <h1 style={{ color: C.navy, fontSize: 24, margin: '8px 0 4px' }}>{assignment?.title}</h1>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
-        {approvedCount} of {submissionCount} submissions reviewed and approved
-      </p>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: '10px 16px', border: 'none', background: tab === t.key ? C.navy : 'transparent',
-            color: tab === t.key ? '#fff' : C.navy, borderRadius: '8px 8px 0 0', cursor: 'pointer',
-            fontWeight: 600, fontSize: 13, fontFamily: 'inherit',
-          }}>
-            {t.icon} {t.label}
-          </button>
-        ))}
-      </div>
-
-      {!overview && (
-        <div style={{ color: C.muted, fontStyle: 'italic' }}>
-          No approved feedback yet — approve submissions in the Review page to populate this report.
-        </div>
-      )}
-
-      {overview && tab === 'overview' && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 }}>
-            <StatCard label={`across ${approvedCount} submissions`} value={`${overview.avgScore} / ${overview.maxScore}`} color={C.blue} />
-            <StatCard label="approved so far" value={`${approvedCount} / ${submissionCount}`} color={C.green} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">
+              {analytics.title} — Analytics
+            </h1>
+            <p className="text-slate-600 mt-2">
+              {analytics.response_count} responses
+            </p>
           </div>
+          <div className="flex gap-3">
+            <Tooltip content="Go back to admin dashboard">
+              <button
+                onClick={() => router.push('/admin')}
+                className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                ← Back
+              </button>
+            </Tooltip>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }}>
-            <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20 }}>
-              <div style={{ fontWeight: 700, color: C.navy, marginBottom: 4 }}>Distribution</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Score buckets, all approved submissions</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 160 }}>
-                {(overview.distribution || []).map((d, i) => {
-                  const max = Math.max(...overview.distribution.map((x) => x.count), 1)
-                  return (
-                    <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ fontSize: 12, marginBottom: 4 }}>{d.count}</div>
-                      <div style={{ height: `${(d.count / max) * 120}px`, background: C.gold, borderRadius: '4px 4px 0 0', minHeight: 2 }} />
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{d.label}</div>
-                    </div>
-                  )
-                })}
+            <Tooltip content="Export all student responses as CSV">
+              <button
+                onClick={handleExportResults}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Export Results
+              </button>
+            </Tooltip>
+
+            <Tooltip content="Refresh analytics data">
+              <button
+                onClick={fetchAnalytics}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Refresh
+              </button>
+            </Tooltip>
+
+            <Tooltip content="Delete all responses and reset analytics">
+              <button
+                onClick={handleResetResponses}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
+              >
+                Reset
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Question Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {analytics.questions?.map((question) => (
+            <div
+              key={question.id}
+              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition"
+            >
+              <h3 className="font-semibold text-slate-900 mb-2">
+                {question.title}
+              </h3>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="text-slate-600">Correct:</span>{' '}
+                  <span className="font-bold text-green-600">
+                    {question.correct_count}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-slate-600">Incorrect:</span>{' '}
+                  <span className="font-bold text-red-600">
+                    {question.incorrect_count}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-slate-600">Success Rate:</span>{' '}
+                  <span className="font-bold text-blue-600">
+                    {question.success_rate?.toFixed(1)}%
+                  </span>
+                </p>
               </div>
+              <Tooltip content="View detailed responses for this question">
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/analytics/${params.assignmentId}/question/${question.id}`
+                    )
+                  }
+                  className="w-full mt-4 bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded transition font-medium text-sm"
+                >
+                  View Details
+                </button>
+              </Tooltip>
             </div>
+          ))}
+        </div>
 
-            <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20 }}>
-              <div style={{ fontWeight: 700, color: C.navy, marginBottom: 4 }}>Criteria</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Class average per criterion</div>
-              {(overview.criteria || []).map((c, i) => (
-                <div key={i} style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>{c.name}</span>
-                    <span style={{ color: C.muted }}>{c.avgScore}/{c.maxScore}</span>
-                  </div>
-                  <div style={{ height: 6, background: '#eee', borderRadius: 3 }}>
-                    <div style={{ height: 6, width: `${(c.avgScore / c.maxScore) * 100}%`, background: C.blue, borderRadius: 3 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Student Responses */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">
+            Student Responses
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100 border-b">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold text-slate-700">
+                    Student
+                  </th>
+                  <th className="px-4 py-2 text-left font-semibold text-slate-700">
+                    Score
+                  </th>
+                  <th className="px-4 py-2 text-left font-semibold text-slate-700">
+                    Submitted
+                  </th>
+                  <th className="px-4 py-2 text-right font-semibold text-slate-700">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {analytics.responses?.map((response) => (
+                  <tr key={response.id} className="border-b hover:bg-slate-50">
+                    <td className="px-4 py-3 text-slate-900">
+                      {response.student_name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-bold text-blue-600">
+                        {response.score}/{response.total_points}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {new Date(response.submitted_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Tooltip content="Review this student's complete responses">
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/analytics/${params.assignmentId}/response/${response.id}`
+                            )
+                          }
+                          className="text-blue-600 hover:text-blue-800 font-medium transition"
+                        >
+                          Review
+                        </button>
+                      </Tooltip>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
-      )}
-
-      {overview && tab === 'strengths' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          {(patterns?.strengths || []).map((s, i) => (
-            <SkillCard key={i} skill={s} good />
-          ))}
-          {(!patterns?.strengths || patterns.strengths.length === 0) && <EmptyNote text="No strengths data yet." />}
         </div>
-      )}
-
-      {overview && tab === 'growth' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          {(patterns?.areasForGrowth || []).map((s, i) => (
-            <SkillCard key={i} skill={s} />
-          ))}
-          {(!patterns?.areasForGrowth || patterns.areasForGrowth.length === 0) && <EmptyNote text="No growth-area data yet." />}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StatCard({ label, value, color }) {
-  return (
-    <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20 }}>
-      <div style={{ fontSize: 28, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{label}</div>
-    </div>
-  )
-}
-
-function SkillCard({ skill, good }) {
-  const pct = Math.round((skill.avgScore / skill.maxScore) * 100)
-  return (
-    <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: 18 }}>
-      <div style={{ fontWeight: 700, color: C.navy, marginBottom: 4, fontSize: 14 }}>{skill.name}</div>
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{skill.studentCount} student{skill.studentCount === 1 ? '' : 's'} scored</div>
-      <div style={{
-        display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-        background: good ? '#eef7f0' : '#fdf0ef', color: good ? C.green : C.red,
-      }}>
-        {pct}% average
       </div>
     </div>
-  )
-}
-
-function EmptyNote({ text }) {
-  return <div style={{ color: C.muted, fontStyle: 'italic', gridColumn: '1 / -1' }}>{text}</div>
+  );
 }

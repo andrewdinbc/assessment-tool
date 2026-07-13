@@ -1,33 +1,31 @@
-'use client'
-import { useState } from 'react'
-import { C } from '../lib/theme'
+import { useState } from 'react';
 
-// Wrap any button/element with a Tooltip to get a styled 1-2 line
-// hover description, instead of relying on the plain browser title
-// attribute (which is slow to appear and unstyled).
-export default function Tooltip({ text, children, width = 220 }) {
-  const [show, setShow] = useState(false)
+export default function Tooltip({ children, content, side = 'top' }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const sideClasses = {
+    top: 'bottom-full mb-2 left-1/2 -translate-x-1/2',
+    bottom: 'top-full mt-2 left-1/2 -translate-x-1/2',
+    left: 'right-full mr-2 top-1/2 -translate-y-1/2',
+    right: 'left-full ml-2 top-1/2 -translate-y-1/2',
+  };
+
   return (
-    <span
-      style={{ position: 'relative', display: 'inline-block' }}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
-      {children}
-      {show && (
-        <span style={{
-          position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-          marginBottom: 8, width, padding: '8px 10px', background: C.navy, color: '#fff',
-          borderRadius: 6, fontSize: 12, fontFamily: 'Georgia, serif', lineHeight: 1.4,
-          zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', pointerEvents: 'none',
-        }}>
-          {text}
-          <span style={{
-            position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-            borderWidth: '5px', borderStyle: 'solid', borderColor: `${C.navy} transparent transparent transparent`,
-          }} />
-        </span>
+    <div className="relative inline-block">
+      <div
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {isVisible && (
+        <div
+          className={`absolute ${sideClasses[side]} bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50`}
+        >
+          {content}
+          <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45" />
+        </div>
       )}
-    </span>
-  )
+    </div>
+  );
 }

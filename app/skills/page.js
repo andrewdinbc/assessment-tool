@@ -1,192 +1,205 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { C } from '../../lib/theme'
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Tooltip from '@/components/Tooltip';
 
 export default function SkillsPage() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [lessonPlannerConnected, setLessonPlannerConnected] = useState(false)
+  const router = useRouter();
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillDescription, setNewSkillDescription] = useState('');
 
   useEffect(() => {
-    fetch('/api/skill-analytics').then((r) => r.json()).then(setData).catch((e) => setData({ error: e.message })).finally(() => setLoading(false))
-    fetch('/api/generate-remedial').then((r) => r.json()).then((d) => setLessonPlannerConnected(d.connected)).catch(() => {})
-  }, [])
+    fetchSkills();
+  }, []);
 
-  if (loading) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: C.muted }}>Loading…</div>
-  if (data?.error) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: '#c0392b' }}>{data.error}</div>
-
-  const { criterionBreakdown, skillTrends, growthOverTime, totalDataPoints } = data || {}
-
-  return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 1100 }}>
-      <Link href="/" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
-      <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 4px' }}>Class & Skill Analytics</h1>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 32 }}>
-        Across every approved assignment · {totalDataPoints || 0} scored criteria in total
-      </p>
-
-      {(!totalDataPoints || totalDataPoints === 0) && (
-        <div style={{ padding: 40, textAlign: 'center', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.muted, fontStyle: 'italic', marginBottom: 32 }}>
-          No approved feedback yet — trends appear here once submissions are reviewed and approved in Review.
-        </div>
-      )}
-
-      {totalDataPoints > 0 && (
-        <>
-          {/* 1. Skill Mastery Trends */}
-          <SectionHeader icon="🎯" title="Skill Mastery Trends" desc="Per-criterion performance over time — which skills need reteaching across the class." />
-          <div style={{ display: 'grid', gap: 14, marginBottom: 40 }}>
-            {skillTrends.map((s) => (
-              <SkillTrendCard key={s.name} skill={s} lessonPlannerConnected={lessonPlannerConnected} />
-            ))}
-          </div>
-
-          {/* 2. Rubric Criterion Breakdown */}
-          <SectionHeader icon="📊" title="Rubric Criterion Breakdown" desc="Average score per rubric category across everything graded — strengths and weaknesses at a glance." />
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 40 }}>
-            {criterionBreakdown.map((c) => (
-              <div key={c.name} style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600, color: C.navy }}>{c.name}</span>
-                  <span style={{ color: c.avgPct >= 75 ? C.green : c.avgPct >= 60 ? C.gold : C.red, fontWeight: 700 }}>
-                    {c.avgPct}% <span style={{ fontWeight: 400, color: C.muted, fontSize: 12 }}>({c.count} scores)</span>
-                  </span>
-                </div>
-                <div style={{ height: 8, background: '#eee', borderRadius: 4 }}>
-                  <div style={{
-                    height: 8, width: `${c.avgPct}%`, borderRadius: 4,
-                    background: c.avgPct >= 75 ? C.green : c.avgPct >= 60 ? C.gold : C.red,
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 3. Growth Over Time */}
-          <SectionHeader icon="📈" title="Growth Over Time" desc="Overall average score by week — validates whether interventions are actually working." />
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
-            {growthOverTime.length < 2 ? (
-              <div style={{ color: C.muted, fontStyle: 'italic', fontSize: 13 }}>
-                Need at least two weeks of approved feedback to show a trend — currently {growthOverTime.length} week{growthOverTime.length === 1 ? '' : 's'} of data.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160 }}>
-                {growthOverTime.map((w) => (
-                  <div key={w.week} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, marginBottom: 4, fontWeight: 700, color: C.navy }}>{w.avgPct}%</div>
-                    <div style={{ height: `${w.avgPct * 1.2}px`, background: C.blue, borderRadius: '4px 4px 0 0', minHeight: 2 }} />
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>{w.week}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function SectionHeader({ icon, title, desc }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <h2 style={{ color: C.navy, fontSize: 18, margin: '0 0 4px' }}>{icon} {title}</h2>
-      <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>{desc}</p>
-    </div>
-  )
-}
-
-function SkillTrendCard({ skill, lessonPlannerConnected }) {
-  const [generating, setGenerating] = useState(false)
-  const [lesson, setLesson] = useState(null)
-  const [error, setError] = useState('')
-
-  async function generateLesson() {
-    setGenerating(true); setError('')
+  const fetchSkills = async () => {
     try {
-      const res = await fetch('/api/generate-remedial', {
+      setLoading(true);
+      const res = await fetch('/api/skills');
+      if (!res.ok) throw new Error('Failed to fetch skills');
+      const data = await res.json();
+      setSkills(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSkill = async (e) => {
+    e.preventDefault();
+    if (!newSkillName.trim()) return;
+
+    try {
+      const res = await fetch('/api/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ criterionName: skill.name }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setLesson(data.lesson)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setGenerating(false)
+        body: JSON.stringify({
+          name: newSkillName,
+          description: newSkillDescription,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add skill');
+      setNewSkillName('');
+      setNewSkillDescription('');
+      await fetchSkills();
+    } catch (err) {
+      setError(err.message);
     }
-  }
+  };
 
-  const max = Math.max(...skill.series.map((p) => p.avgPct), 1)
+  const handleDeleteSkill = async (id) => {
+    if (!confirm('Delete this skill? This may affect existing assignments.'))
+      return;
+
+    try {
+      const res = await fetch(`/api/skills/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete skill');
+      await fetchSkills();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEditSkill = (id) => {
+    router.push(`/skills/edit/${id}`);
+  };
+
+  if (loading) return <div className="p-8">Loading...</div>;
 
   return (
-    <div style={{
-      background: C.card, border: `1px solid ${skill.needsReteaching ? '#f5b7b1' : C.border}`, borderRadius: 10, padding: 18,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div>
-          <span style={{ fontWeight: 700, color: C.navy }}>{skill.name}</span>
-          {skill.needsReteaching && (
-            <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#fdf0ef', color: C.red, fontWeight: 700 }}>
-              Needs reteaching
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 13, color: C.muted }}>
-          {skill.latestPct}% latest {skill.trend !== 0 && (
-            <span style={{ color: skill.trend > 0 ? C.green : C.red }}> ({skill.trend > 0 ? '+' : ''}{skill.trend} vs first)</span>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-slate-800 mb-8">
+          Skills Management
+        </h1>
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 50, marginBottom: 12 }}>
-        {skill.series.map((p) => (
-          <div key={p.week} title={`${p.week}: ${p.avgPct}%`} style={{
-            flex: 1, height: `${(p.avgPct / max) * 44}px`, background: C.gold, borderRadius: '3px 3px 0 0', minHeight: 2,
-          }} />
-        ))}
-      </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
 
-      {skill.needsReteaching && (
-        <div>
-          {!lesson && (
-            lessonPlannerConnected ? (
-              <button onClick={generateLesson} disabled={generating} style={{
-                padding: '8px 16px', background: C.navy, color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              }}>
-                {generating ? 'Designing lesson…' : '📚 Generate Remedial Lesson (via Lesson Planner)'}
-              </button>
-            ) : (
-              <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>
-                Connect Lesson Planner to auto-design a remedial mini-lesson for this skill.
+        {/* Add New Skill Form */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Add New Skill</h2>
+          <form onSubmit={handleAddSkill} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Skill Name
+                </label>
+                <input
+                  type="text"
+                  value={newSkillName}
+                  onChange={(e) => setNewSkillName(e.target.value)}
+                  placeholder="e.g., Problem Solving"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
-            )
-          )}
-          {error && <div style={{ fontSize: 12, color: '#c0392b', marginTop: 8 }}>{error}</div>}
-          {lesson && (
-            <div style={{ marginTop: 12, padding: 14, background: '#fafaf7', borderRadius: 8, border: `1px solid ${C.border}` }}>
-              <div style={{ fontWeight: 700, color: C.navy, marginBottom: 6 }}>{lesson.title}</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}><strong>Objective:</strong> {lesson.objective}</div>
-              <LessonBlock label="Hook" text={lesson.hook} />
-              <LessonBlock label="Mini-lesson" text={lesson.miniLesson} />
-              <LessonBlock label="Guided Practice" text={lesson.guidedPractice} />
-              <LessonBlock label="Check for Understanding" text={lesson.checkForUnderstanding} />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Description (optional)
+                </label>
+                <input
+                  type="text"
+                  value={newSkillDescription}
+                  onChange={(e) => setNewSkillDescription(e.target.value)}
+                  placeholder="Brief description of the skill"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex items-end">
+                <Tooltip content="Add this skill to your skill library">
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
+                  >
+                    Add Skill
+                  </button>
+                </Tooltip>
+              </div>
             </div>
-          )}
+          </form>
         </div>
-      )}
-    </div>
-  )
-}
 
-function LessonBlock({ label, text }) {
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{text}</div>
+        {/* Skills List */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-100 border-b">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">
+                  Skill Name
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">
+                  Assignments
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-slate-700">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {skills.map((skill) => (
+                <tr key={skill.id} className="border-b hover:bg-slate-50">
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                    {skill.name}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {skill.description || '—'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {skill.assignment_count || 0}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-right space-x-2">
+                    <Tooltip content="Modify skill name and description">
+                      <button
+                        onClick={() => handleEditSkill(skill.id)}
+                        className="text-blue-600 hover:text-blue-800 font-medium transition"
+                      >
+                        Edit
+                      </button>
+                    </Tooltip>
+
+                    <Tooltip content="View assignments that assess this skill">
+                      <button
+                        onClick={() =>
+                          router.push(`/skills/${skill.id}/assignments`)
+                        }
+                        className="text-purple-600 hover:text-purple-800 font-medium transition"
+                      >
+                        View
+                      </button>
+                    </Tooltip>
+
+                    <Tooltip content="Remove this skill from your library">
+                      <button
+                        onClick={() => handleDeleteSkill(skill.id)}
+                        className="text-red-600 hover:text-red-800 font-medium transition"
+                      >
+                        Delete
+                      </button>
+                    </Tooltip>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {skills.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg">
+            <p className="text-slate-600">No skills created yet.</p>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }
