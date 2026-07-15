@@ -1,6 +1,7 @@
 import Sidebar from '../components/Sidebar'
 import TopHeader from '../components/TopHeader'
 import DevModePanel from '../developer-mode/DevModePanel'
+import { C } from '../lib/theme'
 
 export const metadata = {
   title: 'Assessment Tool — Chalk & Circuit',
@@ -14,7 +15,7 @@ export default function RootLayout({ children }) {
         <TopHeader />
         <div style={{ display: 'flex' }}>
           <Sidebar />
-          <div style={{ flex: 1, minHeight: 'calc(100vh - 49px)', background: '#f5f0e8' }}>
+          <div style={{ flex: 1, minHeight: 'calc(100vh - 49px)', background: C.bg }}>
             {children}
           </div>
         </div>
