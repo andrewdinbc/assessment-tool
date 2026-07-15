@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 
 export default function ArchivePage() {
   const [assignments, setAssignments] = useState([])
@@ -55,7 +55,7 @@ export default function ArchivePage() {
   const list = showArchived ? archived : active
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 800 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 800 }}>
       <Link href="/" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
       <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 4px' }}>Archive Units</h1>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
