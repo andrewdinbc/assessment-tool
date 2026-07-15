@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 
 export default function RubricLibraryPage() {
   const [rubrics, setRubrics] = useState([])
@@ -27,7 +27,7 @@ export default function RubricLibraryPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 900 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 900 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h1 style={{ color: C.navy, fontSize: 26, margin: 0 }}>Rubric Library</h1>
         <Link href="/rubrics/new" style={{
