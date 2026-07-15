@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 import Tooltip from '../../components/Tooltip'
 import FeatureLock from '../../components/FeatureLock'
 
@@ -116,7 +116,7 @@ export default function WorksheetsPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 760 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 760 }}>
       <Link href="/" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Go back</Link>
 
       <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 4px' }}>Create Worksheet</h1>
