@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { C } from '../../../../lib/theme'
+import { C, FONT_BODY } from '../../../../lib/theme'
 
 const QUIZ_SESSION_BASE = 'https://parent-portal-silk.vercel.app/quiz-session'
 
@@ -51,15 +51,15 @@ export default function LiveQuizSessionPage() {
     setStatus(await res.json())
   }
 
-  if (starting) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: C.muted }}>Starting session…</div>
-  if (error) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: '#c0392b' }}>{error}</div>
+  if (starting) return <div style={{ padding: 32, fontFamily: FONT_BODY, color: C.muted }}>Starting session…</div>
+  if (error) return <div style={{ padding: 32, fontFamily: FONT_BODY, color: '#c0392b' }}>{error}</div>
   if (!session) return null
 
   const sessionUrl = `${QUIZ_SESSION_BASE}/${session.id}`
   const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(sessionUrl)}`
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 1000 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 1000 }}>
       <Link href="/quizzes" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Quiz Library</Link>
       <h1 style={{ color: C.navy, fontSize: 24, margin: '10px 0 4px' }}>{status?.session?.quizzes?.title || 'Live Session'}</h1>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
