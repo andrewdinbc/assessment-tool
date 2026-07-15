@@ -1,10 +1,10 @@
 'use client'
 import Link from 'next/link'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 
 export default function StudentsPage() {
   return (
-    <div style={{ padding: 40, fontFamily: 'Georgia, serif', maxWidth: 700 }}>
+    <div style={{ padding: 40, fontFamily: FONT_BODY, maxWidth: 700 }}>
       <Link href="/" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
       <h1 style={{ color: C.navy, fontSize: 24, margin: '8px 0 12px' }}>📁 Student Portfolio</h1>
       <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6 }}>
