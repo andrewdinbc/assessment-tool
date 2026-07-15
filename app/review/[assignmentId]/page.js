@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { C, LEVELS } from '../../../lib/theme'
+import { C, LEVELS, FONT_BODY } from '../../../lib/theme'
 import Tooltip from '../../../components/Tooltip'
 
 export default function ReviewPage() {
@@ -102,16 +102,16 @@ export default function ReviewPage() {
     setSaving(false)
   }
 
-  if (loading) return <div style={{ padding: 32, fontFamily: 'Georgia, serif', color: C.muted }}>Loading…</div>
+  if (loading) return <div style={{ padding: 32, fontFamily: FONT_BODY, color: C.muted }}>Loading…</div>
   if (!submissions.length) return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif' }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY }}>
       <Link href="/" style={{ color: C.navy }}>← Dashboard</Link>
       <p style={{ color: C.muted, marginTop: 16 }}>No submissions yet for this assignment.</p>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: 'Georgia, serif', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', fontFamily: FONT_BODY, display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: C.navy, color: '#fff', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <Link href="/" style={{ color: '#fff', opacity: 0.7, fontSize: 12, textDecoration: 'none' }}>← Dashboard</Link>
