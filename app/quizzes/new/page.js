@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { C } from '../../../lib/theme'
+import { C, FONT_BODY } from '../../../lib/theme'
 
 const TABS = [
   { key: 'topic', label: 'Topic', icon: '💡' },
@@ -57,7 +57,7 @@ export default function CreateQuizPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 800 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 800 }}>
       <Link href="/quizzes" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Back</Link>
       <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 4px', textAlign: 'center' }}>Create Quiz</h1>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 28, textAlign: 'center' }}>
