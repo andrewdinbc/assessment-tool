@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 
 export default function OralReadingDashboard() {
   const [passages, setPassages] = useState([])
@@ -42,7 +42,7 @@ export default function OralReadingDashboard() {
   const dueCount = schedules.filter((s) => s.isDue).length
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 900 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 900 }}>
       <h1 style={{ color: C.navy, fontSize: 26, margin: '0 0 4px' }}>Oral Reading Assessment</h1>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
         Jerry Johns-style Basic Reading Inventory, using HELPS passages — finding the instructional
