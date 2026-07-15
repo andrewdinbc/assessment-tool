@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { C } from '../../lib/theme'
+import { C, FONT_BODY } from '../../lib/theme'
 
 export default function QuizLibraryPage() {
   const [quizzes, setQuizzes] = useState([])
@@ -23,7 +23,7 @@ export default function QuizLibraryPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 900 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 900 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h1 style={{ color: C.navy, fontSize: 26, margin: 0 }}>Quiz Library</h1>
         <Link href="/quizzes/new" style={{ padding: '10px 18px', background: C.gold, color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
