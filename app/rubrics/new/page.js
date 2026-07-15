@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { C } from '../../../lib/theme'
+import { C, FONT_BODY } from '../../../lib/theme'
 import Tooltip from '../../../components/Tooltip'
 
 const SCALE_LEVEL_NAMES = {
@@ -113,7 +113,7 @@ export default function RubricBuilderPage() {
   }
 
   return (
-    <div style={{ padding: 32, fontFamily: 'Georgia, serif', maxWidth: 900 }}>
+    <div style={{ padding: 32, fontFamily: FONT_BODY, maxWidth: 900 }}>
       <Link href="/rubrics" style={{ color: C.navy, fontSize: 13, textDecoration: 'none' }}>← Go back</Link>
       <h1 style={{ color: C.navy, fontSize: 26, margin: '10px 0 20px' }}>Create manually</h1>
 
