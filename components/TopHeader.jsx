@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 
-const C = { navy: '#1c3557', gold: '#b57c2a', border: '#ddd4c2' }
+import { C } from '../lib/theme'
 
 export default function TopHeader() {
   return (
