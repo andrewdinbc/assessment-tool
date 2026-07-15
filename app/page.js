@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { C } from '../lib/theme'
+import { C, FONT_BODY } from '../lib/theme'
 
 const TEACHER_EMAIL = 'andrewsinbc3@gmail.com'
 
@@ -43,7 +43,7 @@ export default function Dashboard() {
   const selectedAssignment = assignments.find((a) => a.id === selectedId)
 
   return (
-    <div style={{ padding: 40, maxWidth: 1200, fontFamily: 'Georgia, serif' }}>
+    <div style={{ padding: 40, maxWidth: 1200, fontFamily: FONT_BODY }}>
       <h1 style={{ color: C.navy, fontSize: 26, marginBottom: 4 }}>Review & Portfolio</h1>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 32 }}>
         Everything a teacher needs: review student submissions, track progress across Math Mastery and Writing, and see the full picture per student.
