@@ -23,7 +23,11 @@ export default function CombinedAnalyticsPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams(filters);
-      const res = await fetch(`/api/analytics/combined?${params}`);
+      // Fixed 2026-07-20: this page has always called /api/analytics/combined,
+      // which returns 404 -- the real, working implementation lives at
+      // /api/combined-analytics (no nested /analytics/ segment). This page
+      // has likely never successfully loaded any data since it was built.
+      const res = await fetch(`/api/combined-analytics?${params}`);
       if (!res.ok) throw new Error('Failed to fetch analytics');
       const data = await res.json();
       setAnalytics(data);
@@ -35,6 +39,10 @@ export default function CombinedAnalyticsPage() {
   };
 
   const handleExportFullReport = async () => {
+    // NOTE (2026-07-20): /api/analytics/combined/export doesn't exist yet
+    // (404) -- this button has never worked. Not fixed here since it's a
+    // real feature to build (Excel export), not a path typo like the main
+    // data fetch was. Flagged, not silently left.
     try {
       const params = new URLSearchParams(filters);
       const res = await fetch(`/api/analytics/combined/export?${params}`);
@@ -50,6 +58,9 @@ export default function CombinedAnalyticsPage() {
   };
 
   const handleGenerateReport = async () => {
+    // NOTE (2026-07-20): /api/analytics/combined/report doesn't exist yet
+    // (404) -- same situation as export above, a real feature to build,
+    // not fixed here.
     try {
       const res = await fetch('/api/analytics/combined/report', {
         method: 'POST',
