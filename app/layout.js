@@ -2,6 +2,7 @@ import Sidebar from '../components/Sidebar'
 import TopHeader from '../components/TopHeader'
 import DevModePanel from '../developer-mode/DevModePanel'
 import { C } from '../lib/theme'
+import MorpheusChat from '../components/MorpheusChat'
 
 export const metadata = {
   title: 'Assessment Tool — Chalk & Circuit',
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
           audienceLabel="a K-8 teacher reviewing AI-graded student assessments and class-level analytics (not a student-facing product)"
           mode="personal"
         />
+              <MorpheusChat productName="Assessment Tool" />
       </body>
     </html>
   );
